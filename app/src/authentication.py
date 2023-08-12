@@ -17,7 +17,7 @@ authentication: Blueprint = Blueprint("authentication", __name__)
 
 
 @authentication.route("/login", methods=["GET", "POST"])
-def login() -> str:
+def login() -> Response | str:
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
