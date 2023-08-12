@@ -1,2 +1,3 @@
 app/__pycache__
+app/src/__pycache__
 instance/database.db
