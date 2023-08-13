@@ -14,35 +14,43 @@
     <label class="custom-file-label" for="file">Choose file</label>
   </div>
 </form>
-<ul>
-  {% for file_content in file_contents %}
-  <li>{{file_content.file.filename}}</li>
-  <table border="1">
-    <tr>
-      <td>chrom1</td>
-      <td>start1</td>
-      <td>end1</td>
-      <td>chrom2</td>
-      <td>start2</td>
-      <td>end2</td>
-      <td>sample</td>
-      <td>score</td>
-    </tr>
-    {% for content in file_content.contents[:10] %}
-    <tr>
-      <td>{{content.chrom1}}</td>
-      <td>{{content.start1}}</td>
-      <td>{{content.end1}}</td>
-      <td>{{content.chrom2}}</td>
-      <td>{{content.start2}}</td>
-      <td>{{content.end2}}</td>
-      <td>{{content.sample}}</td>
-      <td>{{content.file_id}}</td>
-    </tr>
-    {% endfor %}
+<br />
+{% for file_content in file_contents %}
+<h3>{{file_content.file.filename}}</h3>
+<div class="dataTables_wrapper">
+  <table
+    id="csv_table"
+    class="table table-striped table-bordered table-sm"
+    cellspacing="0"
+    width="100%"
+  >
+    <thead>
+      <tr>
+        <th >chrom1</th>
+        <th >start1</th>
+        <th >end1</th>
+        <th >chrom2</th>
+        <th >start2</th>
+        <th >end2</th>
+        <th >sample</th>
+        <th >score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for content in file_content.contents %}
+      <tr>
+        <td>{{content.chrom1}}</td>
+        <td>{{content.start1}}</td>
+        <td>{{content.end1}}</td>
+        <td>{{content.chrom2}}</td>
+        <td>{{content.start2}}</td>
+        <td>{{content.end2}}</td>
+        <td>{{content.sample}}</td>
+        <td>{{content.score}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
-  <br />
-  {% endfor %}
-</ul>
-
-{% endblock%}
+</div>
+<br />
+{% endfor %} {% endblock%}
