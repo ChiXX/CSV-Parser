@@ -56,7 +56,7 @@
       </button>
     </div>
     {% endif %} {% endfor %} {% endif %} {% endwith %}
-    
+
     <div class="container">{% block content %} {% endblock %}</div>
 
     <script
@@ -81,5 +81,14 @@
       src="{{url_for('static', filename='index.js')}}"
     ></script>
     {% endblock %}
+    <script>
+      $(".custom-file-input").on("change", () => {
+        const fileName = $(this).val().split("\\").pop();
+        $(this)
+          .siblings(".custom-file-label")
+          .addClass("selected")
+          .html(fileName);
+      });
+    </script>
   </body>
 </html>
