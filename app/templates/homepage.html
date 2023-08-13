@@ -1,11 +1,6 @@
 {% extends "base.html" %} {% block title %}Home{% endblock %} {% block content
 %}
-<h1>Current user: {{user}}</h1>
-<ul>
-  {% for file in files %}
-  <li>{{file.content}}</li>
-  {% endfor %}
-</ul>
+<h1>Current user: {{user.first_name}}</h1>
 <form method="POST" enctype="multipart/form-data">
   <div class="custom-file">
     <input
@@ -19,5 +14,35 @@
     <label class="custom-file-label" for="file">Choose file</label>
   </div>
 </form>
+<ul>
+  {% for file_content in file_contents %}
+  <li>{{file_content.file.filename}}</li>
+  <table border="1">
+    <tr>
+      <td>chrom1</td>
+      <td>start1</td>
+      <td>end1</td>
+      <td>chrom2</td>
+      <td>start2</td>
+      <td>end2</td>
+      <td>sample</td>
+      <td>score</td>
+    </tr>
+    {% for content in file_content.contents[:10] %}
+    <tr>
+      <td>{{content.chrom1}}</td>
+      <td>{{content.start1}}</td>
+      <td>{{content.end1}}</td>
+      <td>{{content.chrom2}}</td>
+      <td>{{content.start2}}</td>
+      <td>{{content.end2}}</td>
+      <td>{{content.sample}}</td>
+      <td>{{content.file_id}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <br />
+  {% endfor %}
+</ul>
 
 {% endblock%}

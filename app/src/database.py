@@ -21,6 +21,7 @@ class File(db.Model):
     filename = db.Column(db.String(200), nullable=False)
     date = db.Column(db.DateTime(timezone=True), default=func.now())
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    contents = db.relationship("Content")
 
 
 class User(db.Model, UserMixin):

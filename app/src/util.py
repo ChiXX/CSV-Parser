@@ -52,22 +52,28 @@ def validate_file(file: FileStorage) -> list[list[str]] | None:
     else:
         content = get_csv_content(file)
         if has_mandatory_columns(content[0]):
-            from .database import UploadedFile
+            from .database import File, Content
 
+            file = File.query.filter_by(filename=filename).first()
+            if file:
+                return None
+            new_file = File(filename=filename, user_id=current_user.id)
+            db.session.add(new_file)
+            db.session.commit()
             for row in content[1:]:
-                for [chrom1, start1, end1, chrom2, start2, end2, sample, score] in row:
-                    uploaded_file = UploadedFile(
-                        filename=filename,
-                        chrom1=chrom1,
-                        start1=start1,
-                        end1=end1,
-                        chrom2=chrom2,
-                        start2=start2,
-                        end2=end2,
-                        sample=sample,
-                        scoreuser_id=current_user.id,
-                    )
-                    db.session.add(uploaded_file)
-                    db.session.commit()
+                [chrom1, start1, end1, chrom2, start2, end2, sample, score] = row
+                new_content = Content(
+                    chrom1=chrom1,
+                    start1=start1,
+                    end1=end1,
+                    chrom2=chrom2,
+                    start2=start2,
+                    end2=end2,
+                    sample=sample,
+                    score=score,
+                    file_id=new_file.id,
+                )
+                db.session.add(new_content)
+                db.session.commit()
             return content
     return None
