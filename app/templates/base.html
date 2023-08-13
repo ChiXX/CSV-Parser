@@ -73,9 +73,10 @@
     ></script>
     {% endblock %}
     <script>
-      $(document).ready(function () {
+      <!-- https://www.educba.com/bootstrap-sort-table/ -->
+      <!-- $(document).ready(function () {
         $("#csv_table").DataTable();
-      });
+      }); -->
       $(".custom-file-input").on("change", function () {
         var fileName = $(this).val().split("\\").pop();
         $(this)
