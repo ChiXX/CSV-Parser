@@ -1,37 +1,9 @@
 import codecs
 import csv
-import os
-from collections import defaultdict
-from datetime import datetime
-from decimal import Decimal
+from flask_login import current_user
+from werkzeug.utils import secure_filename
 from werkzeug.datastructures.file_storage import FileStorage
-
-
-def process_csv(filename: str) -> str:
-    product_types = defaultdict(Decimal)
-
-    with open(filename, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                hypen_idx = row["product"].replace('"', "").split().index("-")
-                product_type = " ".join(row["product"].split()[:hypen_idx])
-                product_types[product_type] += Decimal(row["price"][1:])
-            except ValueError:
-                product_types[row["product"].replace('"', "")] += Decimal(
-                    row["price"][1:]
-                )
-
-    output_file = f"product_types_{str(datetime.now())}.csv"
-    with open(os.path.join("output", output_file), "w") as f:
-        writer = csv.writer(f)
-        writer.writerow(["product_type", "price"])
-
-        for product_type, price in product_types.items():
-            writer.writerow([product_type, price])
-
-    return output_file
-
+from flask import Response, redirect, url_for, flash
 
 ALLOWED_EXTENSIONS: set[str] = set(["csv", "tsv"])
 MANDATORY_COLUMNS: list[str] = [
@@ -54,11 +26,27 @@ def get_csv_content(file: FileStorage) -> list[list[str]]:
     rows = csv.reader(stream, dialect=csv.excel)
     content = []
     for row in rows:
-        content.append(row) 
-    return row
+        print(row)
+        content.append(row)
+    return content
+
 
 def has_mandatory_columns(headers: list[str]) -> bool:
     for title in MANDATORY_COLUMNS:
         if title not in headers:
+            flash(f"Missing mandatory column: {title}", category="error")
             return False
     return True
+
+
+def validate_file(file: FileStorage) -> Response:
+    filename = secure_filename(file.filename)
+    if not is_allowed_suffix(file.filename):
+        flash(f'Invalid file type: {filename.split(".")[1]}', category="error")
+    else:
+        content = get_csv_content(file)
+        if not has_mandatory_columns(content[0]):
+            pass
+        else:
+            return redirect(url_for("homepage.home", user=current_user))
+    return redirect(url_for("homepage.home", user=current_user))
