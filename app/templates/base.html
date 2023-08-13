@@ -82,8 +82,8 @@
     ></script>
     {% endblock %}
     <script>
-      $(".custom-file-input").on("change", () => {
-        const fileName = $(this).val().split("\\").pop();
+      $(".custom-file-input").on("change", function () {
+        var fileName = $(this).val().split("\\").pop();
         $(this)
           .siblings(".custom-file-label")
           .addClass("selected")
