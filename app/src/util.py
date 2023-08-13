@@ -1,9 +1,13 @@
 import codecs
 import csv
-from flask_login import current_user
+import json
+import os
+from flask import flash
+from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures.file_storage import FileStorage
-from flask import Response, redirect, url_for, flash
+from .. import db
+
 
 ALLOWED_EXTENSIONS: set[str] = set(["csv", "tsv"])
 MANDATORY_COLUMNS: list[str] = [
@@ -26,7 +30,6 @@ def get_csv_content(file: FileStorage) -> list[list[str]]:
     rows = csv.reader(stream, dialect=csv.excel)
     content = []
     for row in rows:
-        print(row)
         content.append(row)
     return content
 
@@ -39,14 +42,32 @@ def has_mandatory_columns(headers: list[str]) -> bool:
     return True
 
 
-def validate_file(file: FileStorage) -> Response:
+@login_required
+def validate_file(file: FileStorage) -> list[list[str]] | None:
+    if not file:
+        return None
     filename = secure_filename(file.filename)
     if not is_allowed_suffix(file.filename):
         flash(f'Invalid file type: {filename.split(".")[1]}', category="error")
     else:
         content = get_csv_content(file)
-        if not has_mandatory_columns(content[0]):
-            pass
-        else:
-            return redirect(url_for("homepage.home", user=current_user))
-    return redirect(url_for("homepage.home", user=current_user))
+        if has_mandatory_columns(content[0]):
+            from .database import UploadedFile
+
+            for row in content[1:]:
+                for [chrom1, start1, end1, chrom2, start2, end2, sample, score] in row:
+                    uploaded_file = UploadedFile(
+                        filename=filename,
+                        chrom1=chrom1,
+                        start1=start1,
+                        end1=end1,
+                        chrom2=chrom2,
+                        start2=start2,
+                        end2=end2,
+                        sample=sample,
+                        scoreuser_id=current_user.id,
+                    )
+                    db.session.add(uploaded_file)
+                    db.session.commit()
+            return content
+    return None

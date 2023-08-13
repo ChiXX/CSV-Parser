@@ -1,13 +1,23 @@
 {% extends "base.html" %} {% block title %}Home{% endblock %} {% block content
 %}
-<h1>{{user.first_name}}</h1>
+<h1>Current user: {{user}}</h1>
+<ul>
+  {% for file in files %}
+  <li>{{file.content}}</li>
+  {% endfor %}
+</ul>
 <form method="POST" enctype="multipart/form-data">
   <div class="custom-file">
-    <input type="file" class="custom-file-input" onchange="form.submit()" id="file" name="file"/>
+    <input
+      type="file"
+      class="custom-file-input"
+      onchange="form.submit()"
+      accept=".csv, .tsv"
+      id="file"
+      name="file"
+    />
     <label class="custom-file-label" for="file">Choose file</label>
   </div>
 </form>
-
-
 
 {% endblock%}

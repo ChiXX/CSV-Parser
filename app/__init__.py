@@ -10,7 +10,7 @@ DB_NAME = "database.db"
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "J7FhNA8hx0qcDFDBDITpcldGIx8QXKlm"
-    # app.config['MAX_CONTENT_LENGTH'] = 1024*1024 #file size limitation
+    app.config['MAX_CONTENT_LENGTH'] = 16* 1024*1024 #Maximum file size: 16 MB
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
     db.init_app(app)
 
@@ -26,7 +26,7 @@ def create_app():
     from .src.database import User
 
     login_manager = LoginManager()
-    login_manager.login_view = "auth.login"
+    login_manager.login_view = "authentication.login"
     login_manager.init_app(app)
 
     @login_manager.user_loader
