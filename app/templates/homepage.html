@@ -20,13 +20,32 @@
   <div class="btn-group">
     <label for="sortby_dropdown">Sort by:</label>
     <select id="sortby_dropdown" name="sortby_dropdown">
-      {% for header in file_content.headers %} {%if header == file_content.by %}
-      <option selected="selected" value="{{header}}">{{header}}</option>
+      {% for option in file_content.sort_by_options %} {%if option ==
+      file_content.sort_by_option %}
+      <option selected="selected" value="{{option}}">{{option}}</option>
       {%else%}
-      <option value="{{header}}">{{header}}</option>
+      <option value="{{option}}">{{option}}</option>
       {% endif %} {% endfor %}
     </select>
-    <button type="submit">Sort</button>
+    <label for="groupby_dropdown">Group by:</label>
+    <select id="groupby_dropdown" name="groupby_dropdown">
+      {% for option in file_content.group_by_options %} {%if option ==
+      file_content.group_by_option %}
+      <option selected="selected" value="{{option}}">{{option}}</option>
+      {%else%}
+      <option value="{{option}}">{{option}}</option>
+      {% endif %} {% endfor %}
+    </select>
+    <label for="show_top">Show top:</label>
+    <select id="show_top" name="show_top">
+      {% for option in file_content.show_top_options %} {%if option ==
+      file_content.show_top_option %}
+      <option selected="selected" value="{{option}}">{{option}}</option>
+      {%else%}
+      <option value="{{option}}">{{option}}</option>
+      {% endif %} {% endfor %}
+    </select>
+    <button type="submit">Apply</button>
   </div>
   <table
     id="csv_table"
