@@ -12,6 +12,41 @@ from .util import validate_file
 homepage: Blueprint = Blueprint("homepage", __name__)
 
 
+@homepage.route("/", methods=["GET", "POST"])
+@login_required
+def home() -> str | Response:
+    from .database import File, Content
+
+    file_contents = []
+    files = File.query.filter_by(user_id=current_user.id)
+
+    for f in files:
+        all_contents = []
+        for content in Content.query.filter_by(file_id=f.id):
+            all_contents.append(content)
+        file_contents.append(FileData(f, all_contents))
+
+    if request.method == "POST":
+        file = request.files["file"]
+        content = validate_file(file)
+        sortby_dropdown = request.form.get("sortby_dropdown")
+        groupby_dropdown = request.form.get("groupby_dropdown")
+        show_top = request.form.get("show_top")
+
+        if content:
+            return redirect(url_for("homepage.home"))
+        if sortby_dropdown or groupby_dropdown or show_top:
+            for f in file_contents:
+                f.apply_settings_to_content(sortby_dropdown, groupby_dropdown, show_top)
+            return render_template(
+                "homepage.html", user=current_user, file_contents=file_contents
+            )
+
+    return render_template(
+        "homepage.html", user=current_user, file_contents=file_contents
+    )
+
+
 class FileData:
     sort_by_options = [
         "---",
@@ -60,6 +95,8 @@ class FileData:
         else:
             if sort_by_option != "---":
                 self.sort_and_show_top()
+            else:
+                self.contents = self.all_contents[: self.show_top_option]
 
     def sort(self):
         if self.sort_by_option == "chrom1":
@@ -130,38 +167,3 @@ class FileData:
     def group_and_sort(self):
         self.sort()
         self.group_and_show_top()
-
-
-@homepage.route("/", methods=["GET", "POST"])
-@login_required
-def home() -> str | Response:
-    from .database import File, Content
-
-    file_contents = []
-    files = File.query.filter_by(user_id=current_user.id)
-
-    for f in files:
-        all_contents = []
-        for content in Content.query.filter_by(file_id=f.id):
-            all_contents.append(content)
-        file_contents.append(FileData(f, all_contents))
-
-    if request.method == "POST":
-        file = request.files["file"]
-        content = validate_file(file)
-        sortby_dropdown = request.form.get("sortby_dropdown")
-        groupby_dropdown = request.form.get("groupby_dropdown")
-        show_top = request.form.get("show_top")
-
-        if content:
-            return redirect(url_for("homepage.home"))
-        if sortby_dropdown or groupby_dropdown or show_top:
-            for f in file_contents:
-                f.apply_settings_to_content(sortby_dropdown, groupby_dropdown, show_top)
-            return render_template(
-                "homepage.html", user=current_user, file_contents=file_contents
-            )
-
-    return render_template(
-        "homepage.html", user=current_user, file_contents=file_contents
-    )
