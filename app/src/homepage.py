@@ -13,47 +13,49 @@ homepage: Blueprint = Blueprint("homepage", __name__)
 
 
 class FileData:
-    _contents = []
-
     def __init__(self, file, headers, contents, by=""):
         self.file = file
         self.headers = headers
         self.contents = contents
         self.by = by
-        self._contents = contents
+        self.all_contents = contents
 
     def sort_by(self, by):
         self.by = by
         if by == "chrom1":
-            self._contents.sort(
-                key=lambda x: float('inf') if x.chrom1[3:] == "X" else int(x.chrom1[3:]),
+            self.all_contents.sort(
+                key=lambda x: float("inf")
+                if x.chrom1[3:] == "X"
+                else int(x.chrom1[3:]),
                 reverse=False,
             )
         if by == "chrom2":
-            self._contents.sort(
-                key=lambda x: float('inf') if x.chrom2[3:] == "X" else int(x.chrom2[3:]),
+            self.all_contents.sort(
+                key=lambda x: float("inf")
+                if x.chrom2[3:] == "X"
+                else int(x.chrom2[3:]),
                 reverse=False,
             )
         if by == "sample":
-            self._contents.sort(
+            self.all_contents.sort(
                 key=lambda x: int(x.sample[1:]),
                 reverse=False,
             )
         if by == "score":
-            self._contents.sort(key=lambda x: x.score, reverse=True)
+            self.all_contents.sort(key=lambda x: x.score, reverse=True)
         if by == "start1":
-            self._contents.sort(key=lambda x: x.start1, reverse=True)
+            self.all_contents.sort(key=lambda x: x.start1, reverse=True)
         if by == "end1":
-            self._contents.sort(key=lambda x: x.end1, reverse=True)
+            self.all_contents.sort(key=lambda x: x.end1, reverse=True)
         if by == "start2":
-            self._contents.sort(key=lambda x: x.start2, reverse=True)
+            self.all_contents.sort(key=lambda x: x.start2, reverse=True)
         if by == "end2":
-            self._contents.sort(key=lambda x: x.end2, reverse=True)
+            self.all_contents.sort(key=lambda x: x.end2, reverse=True)
         if by == "score":
-            self._contents.sort(key=lambda x: x.score, reverse=True)
+            self.all_contents.sort(key=lambda x: x.score, reverse=True)
 
     def show_top(self, cols=10):
-        self.contents = self._contents[:cols]
+        self.contents = self.all_contents[:cols]
 
 
 SHOW_TOP = 10
