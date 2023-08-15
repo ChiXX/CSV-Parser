@@ -16,6 +16,14 @@ class Content(db.Model):
     file_id = db.Column(db.Integer, db.ForeignKey("file.id"))
 
 
+class Setting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sort_by = db.Column(db.String(150), nullable=False)
+    group_by = db.Column(db.String(150), nullable=False)
+    show_top = db.Column(db.Integer, nullable=False)
+    file_id = db.Column(db.Integer, db.ForeignKey("file.id"))
+
+
 class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(200), nullable=False)

@@ -8,6 +8,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from .util import validate_file
+from .. import db
 
 homepage: Blueprint = Blueprint("homepage", __name__)
 
@@ -15,7 +16,7 @@ homepage: Blueprint = Blueprint("homepage", __name__)
 @homepage.route("/", methods=["GET", "POST"])
 @login_required
 def home() -> str | Response:
-    from .database import File, Content
+    from .database import File, Content, Setting
 
     file_contents = []
     files = File.query.filter_by(user_id=current_user.id)
@@ -24,7 +25,11 @@ def home() -> str | Response:
         all_contents = []
         for content in Content.query.filter_by(file_id=f.id):
             all_contents.append(content)
-        file_contents.append(FileData(f, all_contents))
+        file_content = FileData(f, all_contents)
+        setting = Setting.query.filter_by(file_id=f.id).first()
+        if setting:
+            file_content.write_setting_to_content(setting)
+        file_contents.append(file_content)
 
     if request.method == "POST":
         file = request.files["file"]
@@ -32,16 +37,29 @@ def home() -> str | Response:
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
+        save_setting = request.form.get("save_setting")
+
+        setting = Setting.query.filter_by(file_id=files[0].id).first()
 
         if content:
             return redirect(url_for("homepage.home"))
-        if sortby_dropdown or groupby_dropdown or show_top:
+        if sortby_dropdown and groupby_dropdown and show_top:
             for f in file_contents:
-                f.apply_settings_to_content(sortby_dropdown, groupby_dropdown, show_top)
-            return render_template(
-                "homepage.html", user=current_user, file_contents=file_contents
-            )
-
+                f.apply_setting_to_content(sortby_dropdown, groupby_dropdown, show_top)
+            if save_setting:
+                if setting:
+                    setting.sort_by = sortby_dropdown
+                    setting.group_by = groupby_dropdown
+                    setting.show_top = show_top
+                else:
+                    new_setting = Setting(
+                        sort_by=sortby_dropdown,
+                        group_by=groupby_dropdown,
+                        show_top=show_top,
+                        file_id=files[0].id,
+                    )
+                    db.session.add(new_setting)
+                db.session.commit()
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents
     )
@@ -77,16 +95,23 @@ class FileData:
         self.group_by_option = group_by_option
         self.show_top_option = show_top_option
 
-    def apply_settings_to_content(
+    def write_setting_to_content(self, setting):
+        self.sort_by_option = setting.sort_by
+        self.group_by_option = setting.group_by
+        self.show_top_option = setting.show_top
+        self.apply_setting_to_content(
+            setting.sort_by, setting.group_by, setting.show_top
+        )
+
+    def apply_setting_to_content(
         self,
         sort_by_option="---",
         group_by_option="---",
         show_top_option=10,
     ):
-        self.group_by_option = group_by_option
         self.sort_by_option = sort_by_option
+        self.group_by_option = group_by_option
         self.show_top_option = int(show_top_option)
-        print(group_by_option, group_by_option, show_top_option)
         if group_by_option != "---":
             if sort_by_option != "---":
                 self.group_and_sort()
