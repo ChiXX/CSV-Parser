@@ -3,10 +3,8 @@ from flask import (
     Response,
     flash,
     jsonify,
-    redirect,
     render_template,
     request,
-    url_for,
 )
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -82,9 +80,9 @@ def sign_up():
 
     user: User | None = User.query.filter_by(email=email).first()
     if user:
-        return jsonify({"error": "Email already exists"}), 401
+        return jsonify({"error": "Email already exists"}), 400
     elif len(email) < 3:
-        return jsonify({"error": "Email must be greater than 3 characters."}), 401
+        return jsonify({"error": "Email must be greater than 3 characters."}), 400
     elif len(name) < 2:
         return jsonify({"error": "First name must be greater than 1 character."}), 400
     elif len(password) < 4:
@@ -109,9 +107,9 @@ def upload_file():
 
     user: User | None = User.query.filter_by(email=email).first()
     if not user:
-        return jsonify({"error": "Email does not exist"}), 401
+        return jsonify({"error": "Email does not exist"}), 400
     if not check_password_hash(user.password, password):
-        return jsonify({"error": "Incorrect password"}), 401
+        return jsonify({"error": "Incorrect password"}), 400
 
     login_user(user, remember=True)
     if "file" not in request.files:
@@ -121,9 +119,9 @@ def upload_file():
     validate_content_msg = validate_file(file)
 
     if validate_content_msg == "":
-        return jsonify({"message": "File uploaded successfully"})
+        return jsonify({"message": "File uploaded successfully"}), 201
     else:
-        return jsonify({"error": validate_content_msg}), 401
+        return jsonify({"error": validate_content_msg}), 400
 
 
 class FileData:

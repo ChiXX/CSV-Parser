@@ -73,5 +73,3 @@ def sign_up() -> Response | str:
             flash("Account created!", category="success")
             return redirect(url_for("homepage.home"))
     return render_template("signup.html", user=current_user)
-
-
