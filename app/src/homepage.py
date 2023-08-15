@@ -1,6 +1,7 @@
 from flask import (
     Blueprint,
     Response,
+    flash,
     jsonify,
     redirect,
     render_template,
@@ -8,7 +9,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required, current_user, login_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 from .util import validate_file
 from .. import db
 
@@ -26,8 +27,8 @@ def home() -> str | Response:
 
     if file:
         all_contents = []
-        for content in Content.query.filter_by(file_id=file.id):
-            all_contents.append(content)
+        for validate_content_msg in Content.query.filter_by(file_id=file.id):
+            all_contents.append(validate_content_msg)
         file_content = FileData(file, all_contents)
         setting = Setting.query.filter_by(file_id=file.id).first()
         if setting:
@@ -35,12 +36,13 @@ def home() -> str | Response:
         file_contents.append(file_content)
     if request.method == "POST":
         file = request.files["file"]
-        content = validate_file(file)
+        validate_content_msg = validate_file(file)
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
         save_setting = request.form.get("save_setting")
-        if content:
+        if validate_content_msg != "":
+            flash(validate_content_msg, category="error")
             return redirect(url_for("homepage.home"))
         if sortby_dropdown and groupby_dropdown and show_top:
             for file_content in file_contents:
@@ -70,7 +72,7 @@ def home() -> str | Response:
     )
 
 
-@api.route('/api/upload', methods=['POST'])
+@api.route("/api/upload", methods=["POST"])
 def upload_file():
     # curl -X POST -H "Content-Type: multipart/form-data" -F "file=@testfile/example.csv" -F "email=abb@abb" -F "password=1234" 127.0.0.1:5000/api/upload
     email = request.form.get("email")
@@ -82,20 +84,18 @@ def upload_file():
         return jsonify({"error": "Email does not exist"}), 401
     if not check_password_hash(user.password, password):
         return jsonify({"error": "Incorrect password"}), 401
-    
+
     login_user(user, remember=True)
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'})
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"})
 
-    file = request.files['file']
-    content = validate_file(file)
+    file = request.files["file"]
+    validate_content_msg = validate_file(file)
 
-    if content:
-        return jsonify({'message': 'File uploaded successfully'})
+    if validate_content_msg == "":
+        return jsonify({"message": "File uploaded successfully"})
     else:
-        return jsonify({'error': ''}), 401
-    
-    
+        return jsonify({"error": validate_content_msg}), 401
 
 
 class FileData:

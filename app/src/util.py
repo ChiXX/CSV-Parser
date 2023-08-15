@@ -1,7 +1,5 @@
 import codecs
 import csv
-import json
-import os
 from flask import flash
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
@@ -25,55 +23,75 @@ def is_allowed_suffix(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def get_csv_content(file: FileStorage) -> list[list[str]]:
+def get_file_content(file: FileStorage) -> list[list[str]] | None:
     stream = codecs.iterdecode(file.stream, "utf-8")
-    rows = csv.reader(stream, dialect=csv.excel)
-    content = []
-    for row in rows:
-        content.append(row)
-    return content
+    csv_content = try_parse(stream, ",")
+    if csv_content:
+        return csv_content
+    else:
+        tsv_content = try_parse(stream, "\t")
+        if tsv_content:
+            return tsv_content
+        else:
+            return None
 
 
-def has_mandatory_columns(headers: list[str]) -> bool:
+def try_parse(stream, sep=","):
+    rows = []
+    for row in stream:
+        splitted_row = row.strip().split(sep)
+        if len(splitted_row) == 1:
+            return None
+        rows.append(splitted_row)
+    return rows
+
+
+def has_mandatory_columns(headers: list[str]) -> str:
+    print(headers)
     for title in MANDATORY_COLUMNS:
         if title not in headers:
-            flash(f"Missing mandatory column: {title}", category="error")
-            return False
-    return True
+            return f"Missing mandatory column: {title}"
+    return ""
 
 
 @login_required
-def validate_file(file: FileStorage) -> list[list[str]] | None:
+def validate_file(file: FileStorage) -> str:
     if not file:
-        return None
+        return "Empty file"
     filename = secure_filename(file.filename)
     if not is_allowed_suffix(file.filename):
-        flash(f'Invalid file type: {filename.split(".")[1]}', category="error")
+        return 'Invalid file type: {filename.split(".")[1]}'
     else:
-        content = get_csv_content(file)
-        if has_mandatory_columns(content[0]):
-            from .database import File, Content
+        content = get_file_content(file)
+        if not content:
+            return "File is not in csv or tsv format"
+        validate_headers_msg = has_mandatory_columns(content[0])
+        if validate_headers_msg != "":
+            return validate_headers_msg
 
-            file = File.query.filter_by(filename=filename).first()
-            if file:
-                return None
-            new_file = File(filename=filename, user_id=current_user.id)
-            db.session.add(new_file)
+        from .database import File, Content
+
+        file_exists = File.query.filter_by(
+            filename=filename, user_id=current_user.id
+        ).first()
+        if file_exists:
+            return f"{filename} is already in the database"
+        new_file = File(filename=filename, user_id=current_user.id)
+        db.session.add(new_file)
+        db.session.commit()
+        for row in content[1:]:
+            [chrom1, start1, end1, chrom2, start2, end2, sample, score] = row
+            new_content = Content(
+                chrom1=chrom1,
+                start1=start1,
+                end1=end1,
+                chrom2=chrom2,
+                start2=start2,
+                end2=end2,
+                sample=sample,
+                score=score,
+                file_id=new_file.id,
+            )
+            db.session.add(new_content)
             db.session.commit()
-            for row in content[1:]:
-                [chrom1, start1, end1, chrom2, start2, end2, sample, score] = row
-                new_content = Content(
-                    chrom1=chrom1,
-                    start1=start1,
-                    end1=end1,
-                    chrom2=chrom2,
-                    start2=start2,
-                    end2=end2,
-                    sample=sample,
-                    score=score,
-                    file_id=new_file.id,
-                )
-                db.session.add(new_content)
-                db.session.commit()
-            return content
-    return None
+        return ""
