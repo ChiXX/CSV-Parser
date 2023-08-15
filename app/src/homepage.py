@@ -19,18 +19,17 @@ def home() -> str | Response:
     from .database import File, Content, Setting
 
     file_contents = []
-    files = File.query.filter_by(user_id=current_user.id)
+    file = File.query.filter_by(user_id=current_user.id).first()
 
-    for f in files:
+    if file:
         all_contents = []
-        for content in Content.query.filter_by(file_id=f.id):
+        for content in Content.query.filter_by(file_id=file.id):
             all_contents.append(content)
-        file_content = FileData(f, all_contents)
-        setting = Setting.query.filter_by(file_id=f.id).first()
+        file_content = FileData(file, all_contents)
+        setting = Setting.query.filter_by(file_id=file.id).first()
         if setting:
             file_content.write_setting_to_content(setting)
         file_contents.append(file_content)
-
     if request.method == "POST":
         file = request.files["file"]
         content = validate_file(file)
@@ -38,28 +37,31 @@ def home() -> str | Response:
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
         save_setting = request.form.get("save_setting")
-
-        setting = Setting.query.filter_by(file_id=files[0].id).first()
-
         if content:
             return redirect(url_for("homepage.home"))
         if sortby_dropdown and groupby_dropdown and show_top:
-            for f in file_contents:
-                f.apply_setting_to_content(sortby_dropdown, groupby_dropdown, show_top)
+            for file_content in file_contents:
+                file_content.apply_setting_to_content(
+                    sortby_dropdown, groupby_dropdown, show_top
+                )
             if save_setting:
-                if setting:
-                    setting.sort_by = sortby_dropdown
-                    setting.group_by = groupby_dropdown
-                    setting.show_top = show_top
-                else:
-                    new_setting = Setting(
-                        sort_by=sortby_dropdown,
-                        group_by=groupby_dropdown,
-                        show_top=show_top,
-                        file_id=files[0].id,
-                    )
-                    db.session.add(new_setting)
-                db.session.commit()
+                for file_content in file_contents:
+                    setting = Setting.query.filter_by(
+                        file_id=file_content.file.id
+                    ).first()
+                    if setting:
+                        setting.sort_by = sortby_dropdown
+                        setting.group_by = groupby_dropdown
+                        setting.show_top = show_top
+                    else:
+                        new_setting = Setting(
+                            sort_by=sortby_dropdown,
+                            group_by=groupby_dropdown,
+                            show_top=show_top,
+                            file_id=file_content.file.id,
+                        )
+                        db.session.add(new_setting)
+                    db.session.commit()
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents
     )
