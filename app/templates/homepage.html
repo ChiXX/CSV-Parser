@@ -38,6 +38,16 @@
   {% for file_content in file_contents %} {%if file_content.is_selected%}
   <h3>{{file_content.file.filename}}</h3>
   <div class="btn-group">
+    <button
+      type="submit"
+      id="delete_button"
+      name="delete_button"
+      value="{{file_content.file.filename}}"
+    >
+      Delete
+    </button>
+  </div>
+  <div class="btn-group">
     <label for="sortby_dropdown">Sort by:</label>
     <select id="sortby_dropdown" name="sortby_dropdown">
       {% for option in file_content.sort_by_options %} {%if option ==
@@ -69,16 +79,6 @@
   <div class="btn-group">
     <button type="submit" id="save_setting" name="save_setting">
       Save and Apply
-    </button>
-  </div>
-  <div class="btn-group">
-    <button
-      type="submit"
-      id="delete_button"
-      name="delete_button"
-      value="{{file_content.file.filename}}"
-    >
-      Delete
     </button>
   </div>
   <table
