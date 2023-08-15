@@ -1,16 +1,19 @@
 from flask import (
     Blueprint,
     Response,
+    jsonify,
     redirect,
     render_template,
     request,
     url_for,
 )
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, login_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from .util import validate_file
 from .. import db
 
 homepage: Blueprint = Blueprint("homepage", __name__)
+api: Blueprint = Blueprint("api", __name__)
 
 
 @homepage.route("/", methods=["GET", "POST"])
@@ -65,6 +68,34 @@ def home() -> str | Response:
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents
     )
+
+
+@api.route('/api/upload', methods=['POST'])
+def upload_file():
+    # curl -X POST -H "Content-Type: multipart/form-data" -F "file=@testfile/example.csv" -F "email=abb@abb" -F "password=1234" 127.0.0.1:5000/api/upload
+    email = request.form.get("email")
+    password = request.form.get("password")
+    from .database import User
+
+    user: User | None = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "Email does not exist"}), 401
+    if not check_password_hash(user.password, password):
+        return jsonify({"error": "Incorrect password"}), 401
+    
+    login_user(user, remember=True)
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'})
+
+    file = request.files['file']
+    content = validate_file(file)
+
+    if content:
+        return jsonify({'message': 'File uploaded successfully'})
+    else:
+        return jsonify({'error': ''}), 401
+    
+    
 
 
 class FileData:
