@@ -9,7 +9,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required, current_user, login_user
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from .util import validate_file
 from .. import db
 
@@ -43,7 +43,6 @@ def home() -> str | Response:
         save_setting = request.form.get("save_setting")
         if validate_content_msg != "":
             flash(validate_content_msg, category="error")
-            return redirect(url_for("homepage.home"))
         if sortby_dropdown and groupby_dropdown and show_top:
             for file_content in file_contents:
                 file_content.apply_setting_to_content(
@@ -67,9 +66,38 @@ def home() -> str | Response:
                         )
                         db.session.add(new_setting)
                     db.session.commit()
+                    flash("Setting is saved", category="success")
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents
     )
+
+
+@api.route("/api/signup", methods=["POST"])
+def sign_up():
+    # curl -X POST -H "Content-Type: application/json" -d '{"email": "test@test", "name": "test", "password": "1234"}' http://127.0.0.1:5000/api/signup
+    email = request.json.get("email")
+    name = request.json.get("name")
+    password = request.json.get("password")
+    from .database import User
+
+    user: User | None = User.query.filter_by(email=email).first()
+    if user:
+        return jsonify({"error": "Email already exists"}), 401
+    elif len(email) < 3:
+        return jsonify({"error": "Email must be greater than 3 characters."}), 401
+    elif len(name) < 2:
+        return jsonify({"error": "First name must be greater than 1 character."}), 400
+    elif len(password) < 4:
+        return jsonify({"error": "Password must be at least 7 characters."}), 400
+    else:
+        new_user = User(
+            email=email,
+            first_name=name,
+            password=generate_password_hash(password, method="sha256"),
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"success": "Account created"}), 201
 
 
 @api.route("/api/upload", methods=["POST"])

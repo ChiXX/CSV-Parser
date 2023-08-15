@@ -47,7 +47,6 @@ def try_parse(stream, sep=","):
 
 
 def has_mandatory_columns(headers: list[str]) -> str:
-    print(headers)
     for title in MANDATORY_COLUMNS:
         if title not in headers:
             return f"Missing mandatory column: {title}"
@@ -57,10 +56,10 @@ def has_mandatory_columns(headers: list[str]) -> str:
 @login_required
 def validate_file(file: FileStorage) -> str:
     if not file:
-        return "Empty file"
+        return ""
     filename = secure_filename(file.filename)
     if not is_allowed_suffix(file.filename):
-        return 'Invalid file type: {filename.split(".")[1]}'
+        return f'Invalid file type: {filename.split(".")[1]}'
     else:
         content = get_file_content(file)
         if not content:
