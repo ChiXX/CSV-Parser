@@ -14,11 +14,35 @@
     <label class="custom-file-label" for="file">Choose file</label>
   </div>
   <br />
-  {% for file_content in file_contents %}
+  <div class="list-group">
+    {% for file_content in file_contents %} {%if file_content.is_selected%}
+    <button
+      type="submit"
+      name="file_select_button"
+      value="{{file_content.file.filename}}"
+      class="list-group-item list-group-item-action active"
+    >
+      {{file_content.file.filename}}
+    </button>
+    {%else%}
+    <button
+      type="submit"
+      name="file_select_button"
+      value="{{file_content.file.filename}}"
+      class="list-group-item list-group-item-action"
+    >
+      {{file_content.file.filename}}
+    </button>
+    {% endif %} {% endfor %}
+  </div>
+  {% for file_content in file_contents %} {%if file_content.is_selected%}
   <h3>{{file_content.file.filename}}</h3>
   <div class="btn-group">
     <label for="sortby_dropdown">Sort by:</label>
-    <select id="sortby_dropdown" name="sortby_dropdown" onchange="form.submit()">
+    <select
+      id="sortby_dropdown"
+      name="sortby_dropdown"
+    >
       {% for option in file_content.sort_by_options %} {%if option ==
       file_content.sort_by_option %}
       <option selected="selected" value="{{option}}">{{option}}</option>
@@ -27,7 +51,10 @@
       {% endif %} {% endfor %}
     </select>
     <label for="groupby_dropdown">Group by:</label>
-    <select id="groupby_dropdown" name="groupby_dropdown" onchange="form.submit()">
+    <select
+      id="groupby_dropdown"
+      name="groupby_dropdown"
+    >
       {% for option in file_content.group_by_options %} {%if option ==
       file_content.group_by_option %}
       <option selected="selected" value="{{option}}">{{option}}</option>
@@ -36,7 +63,7 @@
       {% endif %} {% endfor %}
     </select>
     <label for="show_top">Show top:</label>
-    <select id="show_top" name="show_top" onchange="form.submit()">
+    <select id="show_top" name="show_top">
       {% for option in file_content.show_top_options %} {%if option ==
       file_content.show_top_option %}
       <option selected="selected" value="{{option}}">{{option}}</option>
@@ -46,7 +73,7 @@
     </select>
   </div>
   <div class="btn-group">
-    <input type="submit" id="save_setting" name="save_setting" value="Save" />
+    <button type="submit" id="save_setting" name="save_setting">Save and Apply</button>
   </div>
   <table
     id="csv_table"
@@ -82,7 +109,6 @@
     </tbody>
   </table>
   <br />
-
-  {% endfor %}
+  {%endif%} {% endfor %}
 </form>
 {% endblock%}

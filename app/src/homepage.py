@@ -20,52 +20,66 @@ api: Blueprint = Blueprint("api", __name__)
 def home() -> str | Response:
     from .database import File, Content, Setting
 
+    all_files = File.query.filter_by(user_id=current_user.id)
     file_contents = []
-    file = File.query.filter_by(user_id=current_user.id).first()
-
-    if file:
+    for file in all_files:
         all_contents = []
         for validate_content_msg in Content.query.filter_by(file_id=file.id):
             all_contents.append(validate_content_msg)
         file_content = FileData(file, all_contents)
+        # TODO History system
         setting = Setting.query.filter_by(file_id=file.id).first()
         if setting:
+            print(setting.file_id, setting.sort_by)
             file_content.write_setting_to_content(setting)
+        # TODO Show multiple files
+        if current_user.selected_file == file_content.file.filename:
+            file_content.set_is_selected(True)
         file_contents.append(file_content)
+
     if request.method == "POST":
         uploaded_file = request.files["file"]
+        validate_content_msg = validate_file(uploaded_file)
         if validate_content_msg != "":
             flash(validate_content_msg, category="error")
-        validate_content_msg = validate_file(uploaded_file)
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
+        selected_file_name = request.form.get("file_select_button")
         save_setting = request.form.get("save_setting")
-
-        if sortby_dropdown and groupby_dropdown and show_top:
+        if selected_file_name:
+            current_user.selected_file = selected_file_name
+            db.session.commit()
             for file_content in file_contents:
-                file_content.apply_setting_to_content(
-                    sortby_dropdown, groupby_dropdown, show_top
-                )
-            if save_setting:
+                if file_content.file.filename == selected_file_name:
+                    file_content.set_is_selected(True)
+                else:
+                    file_content.set_is_selected(False)
+        if sortby_dropdown and groupby_dropdown and show_top:
+            if save_setting == "":
                 for file_content in file_contents:
-                    setting = Setting.query.filter_by(
-                        file_id=file_content.file.id
-                    ).first()
-                    if setting:
-                        setting.sort_by = sortby_dropdown
-                        setting.group_by = groupby_dropdown
-                        setting.show_top = show_top
-                    else:
-                        new_setting = Setting(
-                            sort_by=sortby_dropdown,
-                            group_by=groupby_dropdown,
-                            show_top=show_top,
-                            file_id=file_content.file.id,
-                        )
-                        db.session.add(new_setting)
-                    db.session.commit()
-                    flash("Setting is saved", category="success")
+                    if file_content.is_selected:
+                        setting = Setting.query.filter_by(
+                            file_id=file_content.file.id
+                        ).first()
+                        if setting:
+                            setting.sort_by = sortby_dropdown
+                            setting.group_by = groupby_dropdown
+                            setting.show_top = show_top
+                            file_content.write_setting_to_content(setting)
+                            flash("Setting is updated", category="success")
+                        else:
+                            new_setting = Setting(
+                                sort_by=sortby_dropdown,
+                                group_by=groupby_dropdown,
+                                show_top=show_top,
+                                file_id=file_content.file.id,
+                            )
+                            file_content.write_setting_to_content(new_setting)
+                            db.session.add(new_setting)
+                            flash("Setting is saved", category="success")
+                        db.session.commit()
+
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents
     )
@@ -147,6 +161,7 @@ class FileData:
         sort_by_option="---",
         group_by_option="---",
         show_top_option=10,
+        is_selected=False,
     ):
         self.file = file
         self.contents = contents
@@ -154,6 +169,10 @@ class FileData:
         self.sort_by_option = sort_by_option
         self.group_by_option = group_by_option
         self.show_top_option = show_top_option
+        self.is_selected = is_selected
+
+    def set_is_selected(self, is_selected):
+        self.is_selected = is_selected
 
     def write_setting_to_content(self, setting):
         self.sort_by_option = setting.sort_by

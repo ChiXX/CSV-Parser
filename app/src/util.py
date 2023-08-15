@@ -1,6 +1,4 @@
 import codecs
-import csv
-from flask import flash
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures.file_storage import FileStorage
@@ -74,7 +72,7 @@ def validate_file(file: FileStorage) -> str:
             filename=filename, user_id=current_user.id
         ).first()
         if file_exists:
-            return f"{filename} is already in the database"
+            return f'{filename} is already in the database'
         new_file = File(filename=filename, user_id=current_user.id)
         db.session.add(new_file)
         db.session.commit()
