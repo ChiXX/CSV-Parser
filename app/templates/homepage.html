@@ -39,10 +39,7 @@
   <h3>{{file_content.file.filename}}</h3>
   <div class="btn-group">
     <label for="sortby_dropdown">Sort by:</label>
-    <select
-      id="sortby_dropdown"
-      name="sortby_dropdown"
-    >
+    <select id="sortby_dropdown" name="sortby_dropdown">
       {% for option in file_content.sort_by_options %} {%if option ==
       file_content.sort_by_option %}
       <option selected="selected" value="{{option}}">{{option}}</option>
@@ -51,10 +48,7 @@
       {% endif %} {% endfor %}
     </select>
     <label for="groupby_dropdown">Group by:</label>
-    <select
-      id="groupby_dropdown"
-      name="groupby_dropdown"
-    >
+    <select id="groupby_dropdown" name="groupby_dropdown">
       {% for option in file_content.group_by_options %} {%if option ==
       file_content.group_by_option %}
       <option selected="selected" value="{{option}}">{{option}}</option>
@@ -73,7 +67,19 @@
     </select>
   </div>
   <div class="btn-group">
-    <button type="submit" id="save_setting" name="save_setting">Save and Apply</button>
+    <button type="submit" id="save_setting" name="save_setting">
+      Save and Apply
+    </button>
+  </div>
+  <div class="btn-group">
+    <button
+      type="submit"
+      id="delete_button"
+      name="delete_button"
+      value="{{file_content.file.filename}}"
+    >
+      Delete
+    </button>
   </div>
   <table
     id="csv_table"

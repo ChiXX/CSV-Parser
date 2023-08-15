@@ -3,8 +3,10 @@ from flask import (
     Response,
     flash,
     jsonify,
+    redirect,
     render_template,
     request,
+    url_for,
 )
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -30,7 +32,6 @@ def home() -> str | Response:
         # TODO History system
         setting = Setting.query.filter_by(file_id=file.id).first()
         if setting:
-            print(setting.file_id, setting.sort_by)
             file_content.write_setting_to_content(setting)
         # TODO Show multiple files
         if current_user.selected_file == file_content.file.filename:
@@ -42,11 +43,22 @@ def home() -> str | Response:
         validate_content_msg = validate_file(uploaded_file)
         if validate_content_msg != "":
             flash(validate_content_msg, category="error")
+        else:
+            return redirect(url_for("homepage.home"))
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
         selected_file_name = request.form.get("file_select_button")
         save_setting = request.form.get("save_setting")
+        filename_to_delete = request.form.get("delete_button")
+        if filename_to_delete:
+            file_to_delete = File.query.filter_by(
+                user_id=current_user.id, filename=filename_to_delete
+            ).first()
+            current_user.selected_file = ""
+            db.session.delete(file_to_delete)
+            db.session.commit()
+            return redirect(url_for("homepage.home"))
         if selected_file_name:
             current_user.selected_file = selected_file_name
             db.session.commit()
@@ -55,30 +67,29 @@ def home() -> str | Response:
                     file_content.set_is_selected(True)
                 else:
                     file_content.set_is_selected(False)
-        if sortby_dropdown and groupby_dropdown and show_top:
-            if save_setting == "":
-                for file_content in file_contents:
-                    if file_content.is_selected:
-                        setting = Setting.query.filter_by(
-                            file_id=file_content.file.id
-                        ).first()
-                        if setting:
-                            setting.sort_by = sortby_dropdown
-                            setting.group_by = groupby_dropdown
-                            setting.show_top = show_top
-                            file_content.write_setting_to_content(setting)
-                            flash("Setting is updated", category="success")
-                        else:
-                            new_setting = Setting(
-                                sort_by=sortby_dropdown,
-                                group_by=groupby_dropdown,
-                                show_top=show_top,
-                                file_id=file_content.file.id,
-                            )
-                            file_content.write_setting_to_content(new_setting)
-                            db.session.add(new_setting)
-                            flash("Setting is saved", category="success")
-                        db.session.commit()
+        if sortby_dropdown and groupby_dropdown and show_top and save_setting == "":
+            for file_content in file_contents:
+                if file_content.is_selected:
+                    setting = Setting.query.filter_by(
+                        file_id=file_content.file.id
+                    ).first()
+                    if setting:
+                        setting.sort_by = sortby_dropdown
+                        setting.group_by = groupby_dropdown
+                        setting.show_top = show_top
+                        file_content.write_setting_to_content(setting)
+                        flash("Setting is updated", category="success")
+                    else:
+                        new_setting = Setting(
+                            sort_by=sortby_dropdown,
+                            group_by=groupby_dropdown,
+                            show_top=show_top,
+                            file_id=file_content.file.id,
+                        )
+                        file_content.write_setting_to_content(new_setting)
+                        db.session.add(new_setting)
+                        flash("Setting is saved", category="success")
+                    db.session.commit()
 
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents
