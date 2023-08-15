@@ -33,14 +33,15 @@ def home() -> str | Response:
             file_content.write_setting_to_content(setting)
         file_contents.append(file_content)
     if request.method == "POST":
-        file = request.files["file"]
-        validate_content_msg = validate_file(file)
+        uploaded_file = request.files["file"]
+        if validate_content_msg != "":
+            flash(validate_content_msg, category="error")
+        validate_content_msg = validate_file(uploaded_file)
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
         save_setting = request.form.get("save_setting")
-        if validate_content_msg != "":
-            flash(validate_content_msg, category="error")
+
         if sortby_dropdown and groupby_dropdown and show_top:
             for file_content in file_contents:
                 file_content.apply_setting_to_content(
