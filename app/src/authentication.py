@@ -65,7 +65,7 @@ def sign_up() -> Response | str:
             new_user = User(
                 email=email,
                 first_name=first_name,
-                selected_file='',
+                selected_file='---',
                 password=generate_password_hash(password1, method="sha256"),
             )
             db.session.add(new_user)

@@ -43,8 +43,6 @@ def home() -> str | Response:
         validate_content_msg = validate_file(uploaded_file)
         if validate_content_msg != "":
             flash(validate_content_msg, category="error")
-        else:
-            return redirect(url_for("homepage.home"))
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
