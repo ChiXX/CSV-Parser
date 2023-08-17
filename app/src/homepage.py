@@ -29,7 +29,7 @@ def home() -> str | Response:
         for validate_content_msg in Content.query.filter_by(file_id=file.id):
             all_contents.append(validate_content_msg)
         file_content = FileData(file, all_contents)
-        # TODO History system
+        # TODO Commit system
         setting = Setting.query.filter_by(file_id=file.id).first()
         if setting:
             file_content.write_setting_to_content(setting)
