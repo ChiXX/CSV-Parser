@@ -21,10 +21,10 @@ def create_app():
     app.register_blueprint(api, url_prefix="/")
     app.register_blueprint(authentication, url_prefix="/")
 
+    from .src.database import User
+
     with app.app_context():
         db.create_all()
-
-    from .src.database import User
 
     login_manager = LoginManager()
     login_manager.login_view = "authentication.login"

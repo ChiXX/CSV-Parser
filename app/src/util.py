@@ -144,8 +144,9 @@ def validate_new_user(
     email: str | None, name: str | None, pwd1: str | None, pwd2: str | None
 ) -> str:
     from .database import User
-
+    
     user: User | None = User.query.filter_by(email=email).first()
+
     if user:
         return "Email already exists"
     if email is None or len(email) < 3:
