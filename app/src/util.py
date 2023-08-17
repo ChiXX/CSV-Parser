@@ -1,7 +1,7 @@
 import codecs
 from flask_login import current_user, login_required, login_user
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.datastructures.file_storage import FileStorage
 from .. import db
 
@@ -165,4 +165,19 @@ def validate_new_user(email: str, name: str, pwd1: str, pwd2: str) -> str:
     db.session.add(new_user)
     db.session.commit()
     login_user(new_user, remember=True)
+    return ""
+
+
+# Login validation
+
+
+def validate_existing_user(email: str, pwd: str) -> str:
+    from .database import User
+
+    user: User | None = User.query.filter_by(email=email).first()
+    if not user:
+        return "Email does not exist."
+    if not check_password_hash(user.password, pwd):
+        return "Incorrect password, try again."
+    login_user(user, remember=True)
     return ""

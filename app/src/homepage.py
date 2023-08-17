@@ -10,7 +10,7 @@ from flask import (
 )
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import check_password_hash, generate_password_hash
-from .util import validate_fileStorage, validate_fileString
+from .util import validate_existing_user, validate_fileStorage, validate_fileString, validate_new_user
 from .. import db
 
 homepage: Blueprint = Blueprint("homepage", __name__)
@@ -94,64 +94,26 @@ def home() -> str | Response:
     )
 
 
+# curl -X POST -H "Content-Type: application/json" -d '{"email": "test@test", "name": "test", "password": "1234"}' http://127.0.0.1:5000/api/signup
 @api.route("/api/signup", methods=["POST"])
 def sign_up():
-    # curl -X POST -H "Content-Type: application/json" -d '{"email": "test@test", "name": "test", "password": "1234"}' http://127.0.0.1:5000/api/signup
     email = request.json.get("email")
     name = request.json.get("name")
     password = request.json.get("password")
-    from .database import User
-
-    user: User | None = User.query.filter_by(email=email).first()
-    if user:
-        return jsonify({"error": "Email already exists"}), 400
-    elif len(email) < 3:
-        return jsonify({"error": "Email must be greater than 3 characters."}), 400
-    elif len(name) < 2:
-        return jsonify({"error": "First name must be greater than 1 character."}), 400
-    elif len(password) < 4:
-        return jsonify({"error": "Password must be at least 7 characters."}), 400
-    else:
-        new_user = User(
-            email=email,
-            first_name=name,
-            password=generate_password_hash(password, method="sha256"),
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        return jsonify({"success": "Account created"}), 201
+    new_user_validation = validate_new_user(email, name, password, password)
+    if new_user_validation != "":
+        return jsonify({"error": new_user_validation}), 400
+    return jsonify({"success": "Account created"}), 201
 
 
+# curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@testfile/example.csv" -u aaa@aaa:1234 127.0.0.1:5000/upload
 @api.route("/api/upload", methods=["POST"])
 def upload_file():
-    # curl -X POST -H "Content-Type: multipart/form-data" -F "file=@testfile/example.csv" -F "email=abb@abb" -F "password=1234" 127.0.0.1:5000/api/upload
-    email = request.form.get("email")
-    password = request.form.get("password")
-    from .database import User
-
-    user: User | None = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "Email does not exist"}), 400
-    if not check_password_hash(user.password, password):
-        return jsonify({"error": "Incorrect password"}), 400
-
-    login_user(user, remember=True)
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"})
-
-    file = request.files["file"]
-    file_validation = validate_fileStorage(file)
-
-    if file_validation == "":
-        return jsonify({"message": "File uploaded successfully"}), 201
-    else:
-        return jsonify({"error": file_validation}), 400
-
-
-@api.route("/upload", methods=["POST"])
-def upload_file2():
     auth = request.authorization
-    # curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@testfile/example.csv" -u aaa@aaa:1234 127.0.0.1:5000/upload
+    existing_user_validation = validate_existing_user(auth.username, auth.password)
+    if existing_user_validation != "":
+        return jsonify({"error": existing_user_validation}), 400
+    
     file_string = request.data.decode("utf-8")
     filename = request.headers.get("filename")
     file_validation = validate_fileString(file_string, filename)
