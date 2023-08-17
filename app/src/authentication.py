@@ -7,6 +7,8 @@ from flask import (
     redirect,
     url_for,
 )
+
+from app.src.util import validate_new_user
 from .database import User
 from .. import db
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -50,27 +52,10 @@ def sign_up() -> Response | str:
         password1 = request.form.get("password1")
         password2 = request.form.get("password2")
 
-        user: User | None = User.query.filter_by(email=email).first()
-        if user:
-            flash("Email already exists.", category="error")
-        elif len(email) < 3:
-            flash("Email must be greater than 3 characters.", category="error")
-        elif len(first_name) < 2:
-            flash("First name must be greater than 1 character.", category="error")
-        elif password1 != password2:
-            flash("Passwords don't match.", category="error")
-        elif len(password1) < 4:
-            flash("Password must be at least 7 characters.", category="error")
+        new_user_validation = validate_new_user(email, first_name, password1, password2)
+        if new_user_validation != '':
+            flash(new_user_validation, category="error")
         else:
-            new_user = User(
-                email=email,
-                first_name=first_name,
-                selected_file='---',
-                password=generate_password_hash(password1, method="sha256"),
-            )
-            db.session.add(new_user)
-            db.session.commit()
-            login_user(new_user, remember=True)
             flash("Account created!", category="success")
             return redirect(url_for("homepage.home"))
     return render_template("signup.html", user=current_user)

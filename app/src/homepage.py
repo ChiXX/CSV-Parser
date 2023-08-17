@@ -10,7 +10,7 @@ from flask import (
 )
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import check_password_hash, generate_password_hash
-from .util import validate_file
+from .util import validate_fileStorage, validate_fileString
 from .. import db
 
 homepage: Blueprint = Blueprint("homepage", __name__)
@@ -40,7 +40,7 @@ def home() -> str | Response:
 
     if request.method == "POST":
         uploaded_file = request.files["file"]
-        validate_content_msg = validate_file(uploaded_file)
+        validate_content_msg = validate_fileStorage(uploaded_file)
         if validate_content_msg != "":
             flash(validate_content_msg, category="error")
         sortby_dropdown = request.form.get("sortby_dropdown")
@@ -140,12 +140,24 @@ def upload_file():
         return jsonify({"error": "No file part"})
 
     file = request.files["file"]
-    validate_content_msg = validate_file(file)
+    file_validation = validate_fileStorage(file)
 
-    if validate_content_msg == "":
+    if file_validation == "":
         return jsonify({"message": "File uploaded successfully"}), 201
     else:
-        return jsonify({"error": validate_content_msg}), 400
+        return jsonify({"error": file_validation}), 400
+
+
+@api.route("/upload", methods=["POST"])
+def upload_file2():
+    auth = request.authorization
+    # curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@testfile/example.csv" -u aaa@aaa:1234 127.0.0.1:5000/upload
+    file_string = request.data.decode("utf-8")
+    filename = request.headers.get("filename")
+    file_validation = validate_fileString(file_string, filename)
+    if file_validation != "":
+        return jsonify({"error": file_validation}), 400
+    return jsonify({"message": "File uploaded successfully"}), 201
 
 
 class FileData:
