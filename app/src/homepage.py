@@ -8,9 +8,14 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import login_required, current_user, login_user
-from werkzeug.security import check_password_hash, generate_password_hash
-from .util import validate_existing_user, validate_fileStorage, validate_fileString, validate_new_user
+from flask_login import login_required, current_user
+from .util import (
+    read_status_from_database,
+    validate_existing_user,
+    validate_fileStorage,
+    validate_fileString,
+    validate_new_user,
+)
 from .. import db
 
 homepage: Blueprint = Blueprint("homepage", __name__)
@@ -20,29 +25,15 @@ api: Blueprint = Blueprint("api", __name__)
 @homepage.route("/", methods=["GET", "POST"])
 @login_required
 def home() -> str | Response:
-    from .database import File, Content, Setting
+    from .database import File, Setting
 
-    all_files = File.query.filter_by(user_id=current_user.id)
-    file_contents = []
-    for file in all_files:
-        all_contents = []
-        for validate_content_msg in Content.query.filter_by(file_id=file.id):
-            all_contents.append(validate_content_msg)
-        file_content = FileData(file, all_contents)
-        # TODO Commit system
-        setting = Setting.query.filter_by(file_id=file.id).first()
-        if setting:
-            file_content.write_setting_to_content(setting)
-        # TODO Show multiple files
-        if current_user.selected_file == file_content.file.filename:
-            file_content.set_is_selected(True)
-        file_contents.append(file_content)
+    file_contents = read_status_from_database()
 
     if request.method == "POST":
         uploaded_file = request.files["file"]
-        validate_content_msg = validate_fileStorage(uploaded_file)
-        if validate_content_msg != "":
-            flash(validate_content_msg, category="error")
+        file_validation = validate_fileStorage(uploaded_file)
+        if file_validation != "":
+            flash(file_validation, category="error")
         sortby_dropdown = request.form.get("sortby_dropdown")
         groupby_dropdown = request.form.get("groupby_dropdown")
         show_top = request.form.get("show_top")
@@ -113,144 +104,10 @@ def upload_file():
     existing_user_validation = validate_existing_user(auth.username, auth.password)
     if existing_user_validation != "":
         return jsonify({"error": existing_user_validation}), 400
-    
+
     file_string = request.data.decode("utf-8")
     filename = request.headers.get("filename")
     file_validation = validate_fileString(file_string, filename)
     if file_validation != "":
         return jsonify({"error": file_validation}), 400
     return jsonify({"message": "File uploaded successfully"}), 201
-
-
-class FileData:
-    sort_by_options = [
-        "---",
-        "chrom1",
-        "start1",
-        "end1",
-        "chrom2",
-        "start2",
-        "end2",
-        "sample",
-        "score",
-    ]
-    group_by_options = ["---", "chrom1", "chrom2", "sample"]
-    show_top_options = [5, 10, 15, 20]
-
-    def __init__(
-        self,
-        file,
-        contents,
-        sort_by_option="---",
-        group_by_option="---",
-        show_top_option=10,
-        is_selected=False,
-    ):
-        self.file = file
-        self.contents = contents
-        self.all_contents = contents
-        self.sort_by_option = sort_by_option
-        self.group_by_option = group_by_option
-        self.show_top_option = show_top_option
-        self.is_selected = is_selected
-
-    def set_is_selected(self, is_selected):
-        self.is_selected = is_selected
-
-    def write_setting_to_content(self, setting):
-        self.sort_by_option = setting.sort_by
-        self.group_by_option = setting.group_by
-        self.show_top_option = setting.show_top
-        self.apply_setting_to_content(
-            setting.sort_by, setting.group_by, setting.show_top
-        )
-
-    def apply_setting_to_content(
-        self,
-        sort_by_option="---",
-        group_by_option="---",
-        show_top_option=10,
-    ):
-        self.sort_by_option = sort_by_option
-        self.group_by_option = group_by_option
-        self.show_top_option = int(show_top_option)
-        if group_by_option != "---":
-            if sort_by_option != "---":
-                self.group_and_sort()
-            else:
-                self.group_and_show_top()
-        else:
-            if sort_by_option != "---":
-                self.sort_and_show_top()
-            else:
-                self.contents = self.all_contents[: self.show_top_option]
-
-    def sort(self):
-        if self.sort_by_option == "chrom1":
-            self.all_contents.sort(
-                key=lambda x: 23
-                if x.chrom1[3:] == "X"
-                else 24
-                if x.chrom1[3:] == "Y"
-                else int(x.chrom1[3:]),
-                reverse=False,
-            )
-        if self.sort_by_option == "chrom2":
-            self.all_contents.sort(
-                key=lambda x: 23
-                if x.chrom2[3:] == "X"
-                else 24
-                if x.chrom2[3:] == "Y"
-                else int(x.chrom2[3:]),
-                reverse=False,
-            )
-        if self.sort_by_option == "sample":
-            self.all_contents.sort(
-                key=lambda x: int(x.sample[1:]),
-                reverse=False,
-            )
-        if self.sort_by_option == "score":
-            self.all_contents.sort(key=lambda x: x.score, reverse=True)
-        if self.sort_by_option == "start1":
-            self.all_contents.sort(key=lambda x: x.start1, reverse=True)
-        if self.sort_by_option == "end1":
-            self.all_contents.sort(key=lambda x: x.end1, reverse=True)
-        if self.sort_by_option == "start2":
-            self.all_contents.sort(key=lambda x: x.start2, reverse=True)
-        if self.sort_by_option == "end2":
-            self.all_contents.sort(key=lambda x: x.end2, reverse=True)
-        if self.sort_by_option == "score":
-            self.all_contents.sort(key=lambda x: x.score, reverse=True)
-
-    def sort_and_show_top(self):
-        self.sort()
-        self.contents = self.all_contents[: self.show_top_option]
-
-    def group_and_show_top(self):
-        grouped_contents_dic = {}
-        for content in self.all_contents:
-            if self.group_by_option == "chrom1":
-                grouped_content = grouped_contents_dic.get(content.chrom1)
-                if grouped_content == None:
-                    grouped_contents_dic[content.chrom1] = []
-                elif self.show_top_option >= len(grouped_content):
-                    grouped_content.append(content)
-            if self.group_by_option == "chrom2":
-                grouped_content = grouped_contents_dic.get(content.chrom2)
-                if grouped_content == None:
-                    grouped_contents_dic[content.chrom2] = []
-                elif self.show_top_option >= len(grouped_content):
-                    grouped_content.append(content)
-            if self.group_by_option == "sample":
-                grouped_content = grouped_contents_dic.get(content.sample)
-                if grouped_content == None:
-                    grouped_contents_dic[content.sample] = []
-                elif self.show_top_option >= len(grouped_content):
-                    grouped_content.append(content)
-        self.contents = []
-        for grouped_content in grouped_contents_dic.values():
-            self.contents = [*self.contents, *grouped_content]
-
-    def group_and_sort(self):
-        self.sort()
-        self.group_and_show_top()
