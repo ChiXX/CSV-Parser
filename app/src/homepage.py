@@ -1,6 +1,5 @@
 from flask import (
     Blueprint,
-    Response,
     flash,
     jsonify,
     redirect,
@@ -9,14 +8,17 @@ from flask import (
     url_for,
 )
 from flask_login import login_required, current_user
+from werkzeug import Response
 from .util import (
+    file_delete_response,
+    file_operate_response,
+    file_post_response,
+    file_select_response,
     read_status_from_database,
     validate_existing_user,
-    validate_fileStorage,
     validate_fileString,
     validate_new_user,
 )
-from .. import db
 
 homepage: Blueprint = Blueprint("homepage", __name__)
 api: Blueprint = Blueprint("api", __name__)
@@ -25,60 +27,28 @@ api: Blueprint = Blueprint("api", __name__)
 @homepage.route("/", methods=["GET", "POST"])
 @login_required
 def home() -> str | Response:
-    from .database import File, Setting
-
     file_contents = read_status_from_database()
 
     if request.method == "POST":
-        uploaded_file = request.files["file"]
-        file_validation = validate_fileStorage(uploaded_file)
-        if file_validation != "":
-            flash(file_validation, category="error")
-        sortby_dropdown = request.form.get("sortby_dropdown")
-        groupby_dropdown = request.form.get("groupby_dropdown")
-        show_top = request.form.get("show_top")
-        selected_file_name = request.form.get("file_select_button")
-        save_setting = request.form.get("save_setting")
-        filename_to_delete = request.form.get("delete_button")
-        if filename_to_delete:
-            file_to_delete = File.query.filter_by(
-                user_id=current_user.id, filename=filename_to_delete
-            ).first()
-            current_user.selected_file = ""
-            db.session.delete(file_to_delete)
-            db.session.commit()
+        file_upload = file_post_response()
+        if file_upload != "":
+            flash(file_upload, category="error")
             return redirect(url_for("homepage.home"))
-        if selected_file_name:
-            current_user.selected_file = selected_file_name
-            db.session.commit()
-            for file_content in file_contents:
-                if file_content.file.filename == selected_file_name:
-                    file_content.set_is_selected(True)
-                else:
-                    file_content.set_is_selected(False)
-        if sortby_dropdown and groupby_dropdown and show_top and save_setting == "":
-            for file_content in file_contents:
-                if file_content.is_selected:
-                    setting = Setting.query.filter_by(
-                        file_id=file_content.file.id
-                    ).first()
-                    if setting:
-                        setting.sort_by = sortby_dropdown
-                        setting.group_by = groupby_dropdown
-                        setting.show_top = show_top
-                        file_content.write_setting_to_content(setting)
-                        flash("Setting is updated", category="success")
-                    else:
-                        new_setting = Setting(
-                            sort_by=sortby_dropdown,
-                            group_by=groupby_dropdown,
-                            show_top=show_top,
-                            file_id=file_content.file.id,
-                        )
-                        file_content.write_setting_to_content(new_setting)
-                        db.session.add(new_setting)
-                        flash("Setting is saved", category="success")
-                    db.session.commit()
+
+        file_delete = file_delete_response()
+        if file_delete != "":
+            flash(file_delete, category="success")
+            return redirect(url_for("homepage.home"))
+
+        file_select = file_select_response(file_contents)
+        if file_select != "":
+            flash(file_select, category="success")
+            return redirect(url_for("homepage.home"))
+
+        file_operation = file_operate_response(file_contents)
+        if file_operation != "":
+            flash(file_operation, category="success")
+            return redirect(url_for("homepage.home"))
 
     return render_template(
         "homepage.html", user=current_user, file_contents=file_contents

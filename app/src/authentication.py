@@ -1,13 +1,13 @@
 from flask import (
     Blueprint,
-    Response,
     render_template,
     request,
     flash,
     redirect,
     url_for,
 )
-from app.src.util import validate_existing_user, validate_new_user
+from werkzeug import Response
+from .util import validate_existing_user, validate_new_user
 from flask_login import login_required, logout_user, current_user
 
 

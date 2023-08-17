@@ -1,4 +1,5 @@
 import codecs
+from flask import request
 from flask_login import current_user, login_required, login_user
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -41,20 +42,17 @@ def parse_fileStorage(file: FileStorage) -> list[list[str]] | None:
             return None
 
 
-def parse_fileString(file_string: str) -> str | None:
+def parse_fileString(file_string: str) -> list[list[str]] | None:
     lines = file_string.strip().split("\n")
     csv_content = try_parse(lines, ",")
-    if csv_content:
+    if csv_content is not None:
         return csv_content
     else:
         tsv_content = try_parse(lines, "\t")
-        if tsv_content:
-            return tsv_content
-        else:
-            return None
+        return tsv_content
 
 
-def try_parse(stream, sep=","):
+def try_parse(stream, sep=",") -> list[list[str]] | None:
     rows = []
     for row in stream:
         splitted_row = row.strip().split(sep)
@@ -72,7 +70,7 @@ def has_mandatory_columns(headers: list[str]) -> str:
 
 
 def validate_file_content(file_content: list[list[str]] | None) -> str:
-    if file_content == None:
+    if file_content is None:
         return "File is not in csv or tsv format"
     header_validation = has_mandatory_columns(file_content[0])
     if header_validation != "":
@@ -111,7 +109,7 @@ def write_file_to_database(filename, file_content) -> str:
 
 @login_required
 def validate_fileStorage(file: FileStorage) -> str:
-    if not file:
+    if not file or file.filename is None:
         return ""
     filename = secure_filename(file.filename)
     filename_validation = validate_filename(filename)
@@ -142,20 +140,22 @@ def validate_fileString(file_string: str, name: str) -> str:
 # Signup validation
 
 
-def validate_new_user(email: str, name: str, pwd1: str, pwd2: str) -> str:
+def validate_new_user(
+    email: str | None, name: str | None, pwd1: str | None, pwd2: str | None
+) -> str:
     from .database import User
 
     user: User | None = User.query.filter_by(email=email).first()
     if user:
         return "Email already exists"
-    if len(email) < 3:
+    if email is None or len(email) < 3:
         return "Email must be greater than 3 characters"
-    if len(name) < 2:
+    if name is None or len(name) < 2:
         return "First name must be greater than 1 character"
+    if pwd1 is None or len(pwd1) < 4:
+        return "Password must be at least 7 characters"
     if pwd1 != pwd2:
         return "Passwords don't match."
-    if len(pwd1) < 4:
-        return "Password must be at least 7 characters"
     new_user = User(
         email=email,
         first_name=name,
@@ -171,13 +171,13 @@ def validate_new_user(email: str, name: str, pwd1: str, pwd2: str) -> str:
 # Login validation
 
 
-def validate_existing_user(email: str, pwd: str) -> str:
+def validate_existing_user(email: str | None, pwd: str | None) -> str:
     from .database import User
 
     user: User | None = User.query.filter_by(email=email).first()
     if not user:
         return "Email does not exist."
-    if not check_password_hash(user.password, pwd):
+    if pwd is None or not check_password_hash(user.password, pwd):
         return "Incorrect password, try again."
     login_user(user, remember=True)
     return ""
@@ -291,19 +291,19 @@ class FileData:
         for content in self.all_contents:
             if self.group_by_option == "chrom1":
                 grouped_content = grouped_contents_dic.get(content.chrom1)
-                if grouped_content == None:
+                if grouped_content is None:
                     grouped_contents_dic[content.chrom1] = []
                 elif self.show_top_option >= len(grouped_content):
                     grouped_content.append(content)
             if self.group_by_option == "chrom2":
                 grouped_content = grouped_contents_dic.get(content.chrom2)
-                if grouped_content == None:
+                if grouped_content is None:
                     grouped_contents_dic[content.chrom2] = []
                 elif self.show_top_option >= len(grouped_content):
                     grouped_content.append(content)
             if self.group_by_option == "sample":
                 grouped_content = grouped_contents_dic.get(content.sample)
-                if grouped_content == None:
+                if grouped_content is None:
                     grouped_contents_dic[content.sample] = []
                 elif self.show_top_option >= len(grouped_content):
                     grouped_content.append(content)
@@ -311,7 +311,7 @@ class FileData:
         for grouped_content in grouped_contents_dic.values():
             self.contents = [*self.contents, *grouped_content]
 
-    def group_and_sort(self):
+    def group_and_sort(self) -> None:
         self.sort()
         self.group_and_show_top()
 
@@ -336,5 +336,69 @@ def read_status_from_database() -> list[FileData]:
         file_contents.append(file_content)
     return file_contents
 
-def homepage_post_handler() -> str:
-    return
+
+def file_post_response() -> str:
+    uploaded_file = request.files["file"]
+    file_validation = validate_fileStorage(uploaded_file)
+    return file_validation
+
+
+def file_delete_response() -> str:
+    from .database import File
+
+    filename_to_delete = request.form.get("delete_button")
+    if filename_to_delete:
+        file_to_delete = File.query.filter_by(
+            user_id=current_user.id, filename=filename_to_delete
+        ).first()
+        current_user.selected_file = ""
+        db.session.delete(file_to_delete)
+        db.session.commit()
+        return f"{filename_to_delete} deleted successfully"
+    return ""
+
+
+def file_select_response(file_contents: list[FileData]) -> str:
+    selected_file_name = request.form.get("file_select_button")
+    if selected_file_name:
+        current_user.selected_file = selected_file_name
+        db.session.commit()
+        for file_content in file_contents:
+            if file_content.file.filename == selected_file_name:
+                file_content.set_is_selected(True)
+            else:
+                file_content.set_is_selected(False)
+        return f"{selected_file_name} is selected"
+    return ""
+
+
+def file_operate_response(file_contents: list[FileData]) -> str:
+    from .database import Setting
+
+    sortby_dropdown = request.form.get("sortby_dropdown")
+    groupby_dropdown = request.form.get("groupby_dropdown")
+    show_top = request.form.get("show_top")
+    save_setting = request.form.get("save_setting")
+    status = ""
+    if sortby_dropdown and groupby_dropdown and show_top and save_setting == "":
+        for file_content in file_contents:
+            if file_content.is_selected:
+                setting = Setting.query.filter_by(file_id=file_content.file.id).first()
+                if setting:
+                    setting.sort_by = sortby_dropdown
+                    setting.group_by = groupby_dropdown
+                    setting.show_top = show_top
+                    file_content.write_setting_to_content(setting)
+                    status = "Setting is updated"
+                else:
+                    new_setting = Setting(
+                        sort_by=sortby_dropdown,
+                        group_by=groupby_dropdown,
+                        show_top=show_top,
+                        file_id=file_content.file.id,
+                    )
+                    file_content.write_setting_to_content(new_setting)
+                    db.session.add(new_setting)
+                    status = "Setting is saved"
+                db.session.commit()
+    return status
