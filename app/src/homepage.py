@@ -27,6 +27,9 @@ def home() -> str | Response:
 
     if request.method == "POST":
         file_upload = file_post_response()
+        if file_upload == 'ok':
+            flash('File upload successfully!', category="success")
+            return redirect(url_for("homepage.home"))
         if file_upload != "":
             flash(file_upload, category="error")
 

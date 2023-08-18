@@ -89,6 +89,7 @@ def write_file_to_database(filename, file_content) -> str:
     new_file = File(filename=filename, user_id=current_user.id)
     db.session.add(new_file)
     db.session.commit()
+    current_user.selected_file = filename
     for row in file_content[1:]:
         [chrom1, start1, end1, chrom2, start2, end2, sample, score] = row
         new_content = Content(
@@ -104,7 +105,7 @@ def write_file_to_database(filename, file_content) -> str:
         )
         db.session.add(new_content)
         db.session.commit()
-    return ""
+    return "ok"
 
 
 @login_required
