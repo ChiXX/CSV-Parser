@@ -14,7 +14,8 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
     db.init_app(app)
 
-    from .src.homepage import homepage, api
+    from .src.homepage import homepage
+    from .src.api import api
     from .src.authentication import authentication
 
     app.register_blueprint(homepage, url_prefix="/")
