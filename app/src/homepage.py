@@ -33,21 +33,18 @@ def home() -> str | Response:
         file_upload = file_post_response()
         if file_upload != "":
             flash(file_upload, category="error")
-            return redirect(url_for("homepage.home"))
-
-        file_delete = file_delete_response()
-        if file_delete != "":
-            flash(file_delete, category="success")
-            return redirect(url_for("homepage.home"))
 
         file_select = file_select_response(file_contents)
         if file_select != "":
             flash(file_select, category="success")
-            return redirect(url_for("homepage.home"))
 
         file_operation = file_operate_response(file_contents)
         if file_operation != "":
             flash(file_operation, category="success")
+        file_delete = file_delete_response()
+
+        if file_delete != "":
+            flash(file_delete, category="success")
             return redirect(url_for("homepage.home"))
 
     return render_template(
@@ -67,7 +64,7 @@ def sign_up():
     return jsonify({"success": "Account created"}), 201
 
 
-# curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@testfile/example.csv" -u aaa@aaa:1234 127.0.0.1:5000/upload
+# curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@testfile/example.csv" -u aaa@aaa:1234 127.0.0.1:5000/api/upload
 @api.route("/api/upload", methods=["POST"])
 def upload_file():
     auth = request.authorization

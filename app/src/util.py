@@ -144,7 +144,7 @@ def validate_new_user(
     email: str | None, name: str | None, pwd1: str | None, pwd2: str | None
 ) -> str:
     from .database import User
-    
+
     user: User | None = User.query.filter_by(email=email).first()
 
     if user:
@@ -201,10 +201,10 @@ class FileData:
     ]
     group_by_options = ["---", "chrom1", "chrom2", "sample"]
     show_top_options = [5, 10, 15, 20]
-    sort_by_option = ("---",)
-    group_by_option = ("---",)
-    show_top_option = (10,)
-    is_selected = (False,)
+    sort_by_option = "---"
+    group_by_option = "---"
+    show_top_option = 10
+    is_selected = False
 
     def __init__(
         self,

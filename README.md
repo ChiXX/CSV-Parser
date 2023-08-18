@@ -8,3 +8,5 @@ docker tag firstimage YOUR_DOCKERHUB_NAME/firstimage
 docker push YOUR_DOCKERHUB_NAME/firstimage
 
 docker pull bionamicxu/csv-parser:latest
+
+pip freeze > requirements.txt  
