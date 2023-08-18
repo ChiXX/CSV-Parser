@@ -12,7 +12,6 @@ from .util import (
 api: Blueprint = Blueprint("api", __name__)
 
 
-# curl -X POST -H "Content-Type: application/json" -d '{"email": "test@test", "name": "test", "password": "1234"}' http://127.0.0.1:5000/api/signup
 @api.route("/api/signup", methods=["POST"])
 def sign_up():
     email = request.json.get("email")
@@ -24,7 +23,6 @@ def sign_up():
     return jsonify({"success": "Account created"}), 201
 
 
-# curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@testfile/example.csv" -u aaa@aaa:1234 127.0.0.1:5000/api/upload
 @api.route("/api/upload", methods=["POST"])
 def upload_file():
     auth = request.authorization
