@@ -1,120 +1,187 @@
 {% extends "base.html" %} {% block title %}Home{% endblock %} {% block content
 %}
-<h1>Current user: {{user.first_name}}</h1>
-<form method="POST" enctype="multipart/form-data">
-  <div class="custom-file">
-    <input
-      type="file"
-      class="custom-file-input"
-      onchange="form.submit()"
-      accept=".csv, .tsv"
-      id="file"
-      name="file"
-    />
-    <label class="custom-file-label" for="file">Choose file</label>
-  </div>
-  <br />
-  <div class="list-group">
-    {% for file_content in file_contents %} {%if file_content.is_selected%}
-    <button
-      type="submit"
-      name="file_select_button"
-      value="{{file_content.file.filename}}"
-      class="list-group-item list-group-item-action active"
-    >
-      {{file_content.file.filename}}
-    </button>
-    {%else%}
-    <button
-      type="submit"
-      name="file_select_button"
-      value="{{file_content.file.filename}}"
-      class="list-group-item list-group-item-action"
-    >
-      {{file_content.file.filename}}
-    </button>
-    {% endif %} {% endfor %}
-  </div>
-  {% for file_content in file_contents %} {%if file_content.is_selected%}
-  <h3>{{file_content.file.filename}}</h3>
-  <div class="btn-group">
-    <button
-      type="submit"
-      id="delete_button"
-      name="delete_button"
-      value="{{file_content.file.filename}}"
-    >
-      Delete
-    </button>
-  </div>
-  <div class="btn-group">
-    <label for="sortby_dropdown">Sort by:</label>
-    <select id="sortby_dropdown" name="sortby_dropdown">
-      {% for option in file_content.sort_by_options %} {%if option ==
-      file_content.sort_by_option %}
-      <option selected="selected" value="{{option}}">{{option}}</option>
-      {%else%}
-      <option value="{{option}}">{{option}}</option>
-      {% endif %} {% endfor %}
-    </select>
-    <label for="groupby_dropdown">Group by:</label>
-    <select id="groupby_dropdown" name="groupby_dropdown">
-      {% for option in file_content.group_by_options %} {%if option ==
-      file_content.group_by_option %}
-      <option selected="selected" value="{{option}}">{{option}}</option>
-      {%else%}
-      <option value="{{option}}">{{option}}</option>
-      {% endif %} {% endfor %}
-    </select>
-    <label for="show_top">Show top:</label>
-    <select id="show_top" name="show_top">
-      {% for option in file_content.show_top_options %} {%if option ==
-      file_content.show_top_option %}
-      <option selected="selected" value="{{option}}">{{option}}</option>
-      {%else%}
-      <option value="{{option}}">{{option}}</option>
-      {% endif %} {% endfor %}
-    </select>
-  </div>
-  <div class="btn-group">
-    <button type="submit" id="save_setting" name="save_setting">
-      Save and Apply
-    </button>
-  </div>
-  <table
-    id="csv_table"
-    class="table table-striped table-bordered table-sm"
-    cellspacing="0"
-    width="100%"
-  >
-    <thead>
-      <tr>
-        <th>chrom1</th>
-        <th>start1</th>
-        <th>end1</th>
-        <th>chrom2</th>
-        <th>start2</th>
-        <th>end2</th>
-        <th>sample</th>
-        <th>score</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for content in file_content.contents %}
-      <tr>
-        <td>{{content.chrom1}}</td>
-        <td>{{content.start1}}</td>
-        <td>{{content.end1}}</td>
-        <td>{{content.chrom2}}</td>
-        <td>{{content.start2}}</td>
-        <td>{{content.end2}}</td>
-        <td>{{content.sample}}</td>
-        <td>{{content.score}}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <br />
-  {%endif%} {% endfor %}
-</form>
+<div class="container-fluid">
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row">
+      <nav class="col-md-2 d-none d-md-block bg-light sidebar navbar-expand-lg">
+        <div class="sidebar-sticky">
+          <h2>{{user.first_name}}</h2>
+          <div class="list-group">
+            {% for file_content in file_contents %} {%if
+            file_content.is_selected%}
+            <button
+              type="submit"
+              name="file_select_button"
+              value="{{file_content.file.filename}}"
+              class="list-group-item list-group-item-action active"
+            >
+              {{file_content.file.filename}}
+            </button>
+            {%else%}
+            <button
+              type="submit"
+              name="file_select_button"
+              value="{{file_content.file.filename}}"
+              class="list-group-item list-group-item-action"
+            >
+              {{file_content.file.filename}}
+            </button>
+            {% endif %} {% endfor %}
+          </div>
+        </div>
+      </nav>
+      <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %} {% for category, message in messages %} {% if category ==
+        'error' %}
+        <div
+          class="alert alert-danger alter-dismissable fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        {% else %}
+        <div
+          class="alert alert-success alter-dismissable fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        {% endif %} {% endfor %} {% endif %} {% endwith %}
+        <div class="container" style="overflow: scroll; height: 100vh">
+          <div class="custom-file">
+            <input
+              type="file"
+              class="custom-file-input"
+              onchange="form.submit()"
+              accept=".csv, .tsv"
+              id="file"
+              name="file"
+            />
+            <label class="custom-file-label" for="file">Choose file</label>
+          </div>
+          <br />
+          <br />
+          <br />
+          {% for file_content in file_contents %} {%if
+          file_content.is_selected%}
+          <div class="row" style="justify-content: space-between">
+            <h3>{{file_content.file.filename}}</h3>
+            <button
+              class="btn btn-primary"
+              type="submit"
+              id="delete_button"
+              name="delete_button"
+              value="{{file_content.file.filename}}"
+            >
+              Delete
+            </button>
+          </div>
+          <br />
+          <br />
+          <div class="row" style="justify-content: space-between">
+            <div class="btn-group" >
+              <label class="input-group-text" for="sortby_dropdown"
+                >Sort by:</label
+              >
+              <select
+                class="custom-select"
+                id="sortby_dropdown"
+                name="sortby_dropdown"
+              >
+                {% for option in file_content.sort_by_options%} {%if option ==
+                file_content.sort_by_option %}
+                <option selected="selected" value="{{option}}">
+                  {{option}}
+                </option>
+                {%else%}
+                <option value="{{option}}">{{option}}</option>
+                {% endif %} {% endfor %}
+              </select>
+              <label class="input-group-text" for="groupby_dropdown"
+                >Group by:</label
+              >
+              <select
+                class="custom-select"
+                id="groupby_dropdown"
+                name="groupby_dropdown"
+              >
+                {% for option in file_content.group_by_options %} {%if option ==
+                file_content.group_by_option %}
+                <option selected="selected" value="{{option}}">
+                  {{option}}
+                </option>
+                {%else%}
+                <option value="{{option}}">{{option}}</option>
+                {% endif %} {% endfor %}
+              </select>
+              <label class="input-group-text" for="show_top">Show top:</label>
+              <select class="custom-select" id="show_top" name="show_top">
+                {% for option in file_content.show_top_options %} {%if option ==
+                file_content.show_top_option %}
+                <option selected="selected" value="{{option}}">
+                  {{option}}
+                </option>
+                {%else%}
+                <option value="{{option}}">{{option}}</option>
+                {% endif %} {% endfor %}
+              </select>
+            </div>
+            <button
+              class="btn btn-primary"
+              type="submit"
+              id="save_setting"
+              name="save_setting"
+            >
+              Save and Apply
+            </button>
+          </div>
+          <br />
+          <br />
+          <table
+            id="csv_table"
+            class="table table-striped table-bordered table-sm"
+            cellspacing="0"
+            width="100%"
+          >
+            <thead>
+              <tr>
+                <th>chrom1</th>
+                <th>start1</th>
+                <th>end1</th>
+                <th>chrom2</th>
+                <th>start2</th>
+                <th>end2</th>
+                <th>sample</th>
+                <th>score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for content in file_content.contents %}
+              <tr>
+                <td>{{content.chrom1}}</td>
+                <td>{{content.start1}}</td>
+                <td>{{content.end1}}</td>
+                <td>{{content.chrom2}}</td>
+                <td>{{content.start2}}</td>
+                <td>{{content.end2}}</td>
+                <td>{{content.sample}}</td>
+                <td>{{content.score}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <br />
+          {%endif%} {% endfor %}
+        </div>
+      </main>
+    </div>
+  </form>
+</div>
 {% endblock%}
