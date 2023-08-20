@@ -43,7 +43,7 @@ curl.exe -H "Content-Type: text/csv" -H "filename: example.csv" --data-binary "@
 A Docker file is provided. And the image is available from docker hub.
 
 ```bash
-docker pull bionamicxu/csv-parser:latest
+docker pull bionamicxu/csv-parser-image:latest
 docker run -p 5000:5000 csv-parser-image
 ```
 
@@ -55,4 +55,3 @@ docker build -t csv-parser-image .
 ```
 
 The app will run on `http://127.0.0.1:5000/`
-
