@@ -17,7 +17,6 @@ from .util import (
 )
 
 homepage: Blueprint = Blueprint("homepage", __name__)
-api: Blueprint = Blueprint("api", __name__)
 
 
 @homepage.route("/", methods=["GET", "POST"])
